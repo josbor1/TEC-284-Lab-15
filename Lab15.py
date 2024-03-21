@@ -25,6 +25,7 @@ from mininet.term import makeTerms
 from sys import exit, stdin, argv
 from time import sleep
 import os
+
 def checkRequired():
     "Check for required executables"
     required = ['udhcpd', 'udhcpc', 'dnsmasq', 'curl', 'firefox']
@@ -35,6 +36,7 @@ def checkRequired():
             if r == 'dnsmasq':
                 # Don't run dnsmasq by default!
                 print(quietRun('update-rc.d dnsmasq disable'))
+
 class DHCPTopo(Topo):
     """Topology for DHCP Demo:
        client - switch - slow link - DHCP server
@@ -42,17 +44,18 @@ class DHCPTopo(Topo):
                 attacker"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        client = self.addHost('h1', ip='10.0.0.10/24')
+        client = self.addHost('h1', ip='192.168.1.10/24')
         switch = self.addSwitch('s1')
-        dhcp = self.addHost('dhcp', ip='10.0.0.50/24')
-        evil = self.addHost('evil', ip='10.0.0.66/24')
+        dhcp = self.addHost('dhcp', ip='192.168.1.50/24')
+        evil = self.addHost('evil', ip='192.168.1.66/24')
         self.addLink(client, switch)
         self.addLink(evil, switch)
         self.addLink(dhcp, switch, bw=10, delay='500ms')
+
 # DHCP server functions and data
 DNSTemplate = """
-start        10.0.0.10
-end          10.0.0.90
+start        192.168.1.10
+end          192.168.1.90
 option       subnet 255.255.255.0
 option       domain local
 option       lease 7  # seconds
@@ -69,6 +72,7 @@ def makeDHCPconfig(filename, intf, gw, dns):
         '')
     with open(filename, 'w') as f:
         f.write('\n'.join(config))
+
 def startDHCPserver(host, gw, dns):
     "Start DHCP server on host with specified DNS server"
     info('* Starting DHCP server on', host, 'at', host.IP(), '\n')
@@ -76,18 +80,22 @@ def startDHCPserver(host, gw, dns):
     makeDHCPconfig(dhcpConfig, host.defaultIntf(), gw, dns)
     host.cmd('udhcpd -f', dhcpConfig,
              '1>/tmp/%s-dhcp.log 2>&1  &' % host)
+
 def stopDHCPserver(host):
     "Stop DHCP server on host"
     info('* Stopping DHCP server on', host, 'at', host.IP(), '\n')
     host.cmd('kill %udhcpd')
+
 # DHCP client functions
 def startDHCPclient(host):
     "Start DHCP client on host"
     intf = host.defaultIntf()
     host.cmd('dhclient -v -d -r', intf)
     host.cmd('dhclient -v -d 1> /tmp/dhclient.log 2>&1', intf, '&')
+
 def stopDHCPclient(host):
     host.cmd('kill %dhclient')
+
 def waitForIP(host):
     "Wait for an IP address"
     info('*', host, 'waiting for IP address')
@@ -100,16 +108,17 @@ def waitForIP(host):
     info('\n')
     info('*', host, 'is now using',
           host.cmd('grep nameserver /etc/resolv.conf'))
+
 # Fake DNS server
 def startFakeDNS(host):
     "Start Fake DNS server"
     info('* Starting fake DNS server', host, 'at', host.IP(), '\n')
     host.cmd('dnsmasq -k -A /#/%s 1>/tmp/dns.log 2>&1 &' % host.IP())
+
 def stopFakeDNS(host):
     "Stop Fake DNS server"
     info('* Stopping fake DNS server', host, 'at', host.IP(), '\n')
     host.cmd('kill %dnsmasq')
-# Evil web server
 def startEvilWebServer(host):
     "Start evil web server"
     info('* Starting web server', host, 'at', host.IP(), '\n')
