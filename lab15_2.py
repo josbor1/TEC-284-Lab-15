@@ -35,6 +35,23 @@ class DHCPTopo(Topo):
         self.addLink(evil, switch)
         self.addLink(dhcp, switch, bw=10, delay='500ms')
 
+def mountPrivateResolvconf(host):
+    "Create/mount private /etc/resolv.conf for host"
+    etc = '/tmp/etc-%s' % host
+    host.cmd('mkdir -p', etc)
+    host.cmd('mount --bind /etc', etc)
+    host.cmd('mount -n -t tmpfs tmpfs /etc')
+    host.cmd('ln -s %s/* /etc/' % etc)
+    host.cmd('rm /etc/resolv.conf')
+    host.cmd('cp %s/resolv.conf /etc/' % etc)
+
+def unmountPrivateResolvconf(host):
+    "Unmount private /etc dir for host"
+    etc = '/tmp/etc-%s' % host
+    host.cmd('umount /etc')
+    host.cmd('umount', etc)
+    host.cmd('rmdir', etc)
+
 def dhcpdemo(firefox=True):
     "Rogue DHCP server demonstration"
     checkRequired()
