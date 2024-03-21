@@ -63,45 +63,38 @@ def make_dhcp_config( filename, intf, gw, dns ):
     with open( filename, 'w') as f:
         f.write( '\n'.join( config ) )
 
-def start_dhcp_server( host, gw, dns ):
+def start_dhcp_server( topo, gw, dns ):  # Accepts topo object or evil host (depending on usage)
     "Start DHCP server on host with specified DNS server"
-    info( '* Starting DHCP server on', host, 'at', host.IP(), '\n' )
-    dhcp_config = '/tmp/%s-udhcpd.conf' % host
-    make_dhcp_config( dhcp_config, host.defaultIntf(), gw, dns )
-    host.cmd( 'udhcpd -f', dhcp_config,
-              '1>/tmp/%s-dhcp.log 2>&1  &' % host )
+    if hasattr(topo, 'evil'):  # Check if topo object has evil attribute (called from DHCPTopo)
+        evil = topo.evil  # Access evil from topo object
+    else:
+        evil = topo  # Assume topo is the evil host object (called from run_demo)
+    info( '* Starting DHCP server on', evil, 'at', evil.IP(), '\n' )
+    dhcp_config = '/tmp/%s-udhcpd.conf' % evil
+    make_dhcp_config( dhcp_config, evil.defaultIntf(), gw, dns )
+    evil.cmd( 'udhcpd -f', dhcp_config,
+              '1>/tmp/%s-dhcp.log 2>&1  &' % evil )
 
 def stop_dhcp_server( host ):
-    "Stop DHCP server on host"
-    info( '* Stopping DHCP server on', host, 'at', host.IP(), '\n' )
-    host.cmd( 'kill %udhcpd' )
-
+     # (unchanged)
 
 def hacked_webpage(path):
-    """Creates a simple HTML file that displays a "hacked" message"""
+    """Creates a simple HTML file that displays a 'hacked' message"""
     content = """<html><body><h1>YOU HAVE BEEN HACKED!!!</h1></body></html>"""
     with open(path, 'w') as f:
         f.write(content)
 
 def run_demo():
     "Create and run the test network"
+    setLogLevel( 'info' )  # Set logging level
 
-    # Create the network
-    net = Mininet( topo=DHCPTopo(), controller=None )
-
-    # Check for required programs
+    # Check for required executables
     check_required()
 
-    # Configure evil host as DNS server (redirecting to hacked webpage)
-    evil_dir = '/var/www/html/evil'  # Directory for hacked webpage
-    evil.cmd('apt-get install -y dnsmasq')  # Ensure dnsmasq is installed on evil
-    evil.cmd('mkdir -p ' + evil_dir)  # Create directory for webpage
-    hacked_webpage(evil_dir + '/index.html')  # Create hacked webpage
-    evil.cmd('echo "address=/.evil/ ' + evil_dir + '/index.html" >> /etc/dnsmasq.conf')  # Redirect DNS to hacked page
-    evil.cmd('service dnsmasq restart')  # Restart dnsmasq with new config
+    # Create our network
+    net = Mininet( topo=DHCPTopo(), link=TCLink, autoStaticArp=True )
 
     # Start the network
-    net.build()
     net.start()
 
     # User Interaction
@@ -110,20 +103,21 @@ def run_demo():
     input("Press Enter to simulate DHCP request from h1 and launch the attack...")
 
     # Start DHCP servers (legitimate and evil)
-    start_dhcp_server( 'dhcp', '192.168.1.1', '8.8.8.8' )  # Legitimate DHCP with external DNS
-    start_dhcp_server( 'evil', '192.168.1.1', '192.168.1.66' )  # Evil DHCP with evil DNS
+    start_dhcp_server( net, '192.168.1.1', '8.8.8.8' )  # Legitimate DHCP with external DNS
+    start_dhcp_server( net.evil, '192.168.1.1', '192.168.1.66' )  # Evil DHCP with evil DNS
 
     print( "h1 should now have internet access (evil DNS server in control)." )
     print( "h1 will be redirected to a 'hacked' webpage when trying to browse (e.g., try curl amazon.com)" )
     input("Press Enter to stop the network...")
 
     # Stop DHCP servers and clean up
-    stop_dhcp_server( 'dhcp' )
-    stop_dhcp_server( 'evil' )
-    evil.cmd('rm -rf ' + evil_dir)  # Remove hacked webpage directory
-    evil.cmd('service dnsmasq stop')  # Stop dnsmasq
+    stop_dhcp_server( net.dhcp )
+    stop_dhcp_server( net.evil )
+    net.evil.cmd('rm -rf /var/www/html/evil')  # Remove hacked webpage directory
+    net.evil.cmd('service dnsmasq stop')  # Stop dnsmasq
     net.stop()
 
 if __name__ == '__main__':
     run_demo()
 
+    
