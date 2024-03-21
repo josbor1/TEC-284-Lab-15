@@ -63,12 +63,12 @@ def make_dhcp_config( filename, intf, gw, dns ):
     with open( filename, 'w') as f:
         f.write( '\n'.join( config ) )
 
-def start_dhcp_server( topo, gw, dns ):  # Accepts topo object or evil host (depending on usage)
+def start_dhcp_server( self, gw, dns ):  # Accepts topo object or evil host (depending on usage)
     "Start DHCP server on host with specified DNS server"
-    if hasattr(topo, 'evil'):  # Check if topo object has evil attribute (called from DHCPTopo)
-        evil = topo.evil  # Access evil from topo object
+    if hasattr(self, 'evil'):  # Check if topo object has evil attribute (called from DHCPTopo)
+        evil = self.evil  # Access evil from topo object (using self)
     else:
-        evil = topo  # Assume topo is the evil host object (called from run_demo)
+        evil = self  # Assume topo is the evil host object (called from run_demo)
     info( '* Starting DHCP server on', evil, 'at', evil.IP(), '\n' )
     dhcp_config = '/tmp/%s-udhcpd.conf' % evil
     make_dhcp_config( dhcp_config, evil.defaultIntf(), gw, dns )
@@ -76,7 +76,9 @@ def start_dhcp_server( topo, gw, dns ):  # Accepts topo object or evil host (dep
               '1>/tmp/%s-dhcp.log 2>&1  &' % evil )
 
 def stop_dhcp_server( host ):
-     # (unchanged)
+    "Stop DHCP server on host"
+    info( 'Stopping DHCP server on', host )
+    host.cmd( 'pkill -f udhcpd' )
 
 def hacked_webpage(path):
     """Creates a simple HTML file that displays a 'hacked' message"""
@@ -86,8 +88,8 @@ def hacked_webpage(path):
 
 def run_demo():
     "Create and run the test network"
-    setLogLevel( 'info' )  # Set logging level
 
+    setLogLevel( 'info' )  # Set logging level
     # Check for required executables
     check_required()
 
@@ -119,5 +121,3 @@ def run_demo():
 
 if __name__ == '__main__':
     run_demo()
-
-    
