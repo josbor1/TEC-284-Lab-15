@@ -35,6 +35,25 @@ class DHCPTopo(Topo):
         self.addLink(evil, switch)
         self.addLink(dhcp, switch, bw=10, delay='500ms')
 
+def make_dhcp_config(filename, intf, gw, dns):
+    "Create a DHCP configuration file"
+    DNSTemplate = """
+start    192.168.1.50
+end    192.168.1.90
+option    subnet    255.255.255.0
+option    domain    local
+option    lease    7  # seconds
+"""
+    config = (
+        'interface %s' % intf,
+        DNSTemplate,
+        'option router %s' % gw,
+        'option dns %s' % dns,
+        '' )
+    with open(filename, 'w') as f:
+        f.write('\n'.join(config))
+
+
 def start_dhcp_server(host, gw, dns):
     "Start DHCP server on host with specified DNS server"
     info('* Starting DHCP server on', host, 'at', host.IP(), '\n')
