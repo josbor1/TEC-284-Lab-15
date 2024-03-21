@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 """
 Rogue DHCP server demo for Stanford CS144.
@@ -28,8 +28,10 @@ from mininet.cli import CLI
 from mininet.util import quietRun
 from mininet.log import setLogLevel, info
 from mininet.term import makeTerms
+from mininet.examples.nat import connectToInternet, stopNAT
 
 from sys import exit, stdin, argv
+from re import findall
 from time import sleep
 import os
 
@@ -49,6 +51,7 @@ class DHCPTopo(Topo):
        client - switch - slow link - DHCP server
                   |
                 attacker"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         client = self.addHost('h1', ip='10.0.0.10/24')
@@ -63,11 +66,11 @@ class DHCPTopo(Topo):
 # DHCP server functions and data
 
 DNSTemplate = """
-start        10.0.0.10
-end          10.0.0.90
-option       subnet 255.255.255.0
-option       domain local
-option       lease 7  # seconds
+start		10.0.0.10
+end		10.0.0.90
+option	subnet	255.255.255.0
+option	domain	local
+option	lease	7  # seconds
 """
 # option dns 8.8.8.8
 # interface h1-eth0
@@ -119,7 +122,7 @@ def waitForIP(host):
         sleep(1)
     info('\n')
     info('*', host, 'is now using',
-          host.cmd('grep nameserver /etc/resolv.conf'))
+         host.cmd('grep nameserver /etc/resolv.conf'))
 
 # Fake DNS server
 
@@ -142,19 +145,22 @@ def startEvilWebServer(host):
     host.cmd('rm -rf', webdir)
     host.cmd('mkdir -p', webdir)
     with open(webdir + '/index.html', 'w') as f:
+        # If we wanted to be truly evil, we could add this
+        # to make it hard to retype URLs in firefox
+        # f.write( '<meta http-equiv="refresh" content="1"> \n' )
         f.write('<html><p>You have been pwned! Please sign in.<p>\n'
                 '<body><form action="">\n'
                 'e-mail: <input type="text" name="firstname"><br>\n'
                 'password: <input type="text" name="firstname"><br>\n'
                 '</form></body></html>')
     host.cmd('cd', webdir)
-    host.cmd('python3 -m http.server 80 >& /tmp/http.log &')
-
+    host.cmd('python -m http.server 80 >& /tmp/http.log &')
 
 def stopEvilWebServer(host):
     "Stop evil web server"
     info('* Stopping web server', host, 'at', host.IP(), '\n')
     host.cmd('kill %python')
+
 
 # Some other potentially useful code if we want to
 # make this an interactive demo.
@@ -168,7 +174,7 @@ def prompt(s=None):
     "Print a prompt and read a line from stdin"
     if s is None:
         s = "Press return to continue: "
-    print(s, end=' ')
+    print(s, end='')
     return readline()
 
 def mountPrivateResolvconf(host):
@@ -187,13 +193,6 @@ def unmountPrivateResolvconf(host):
     host.cmd('umount /etc')
     host.cmd('umount', etc)
     host.cmd('rmdir', etc)
-
-def connectToInternet(network, switch):
-    "Connect the network to the internet"
-    switch = network.get(switch)
-    switch.cmd("sysctl -w net.ipv4.ip_forward=1")
-    switch.cmd("iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE")
-    return switch
 
 def dhcpdemo(firefox=True):
     "Rogue DHCP server demonstration"
@@ -253,7 +252,17 @@ def dhcpdemo(firefox=True):
     unmountPrivateResolvconf(h1)
     net.stop()
 
-# Run the dhcpdemo function when the script is executed
+def usage():
+    "Print usage message"
+    print("%s [ -h | -text ]")
+    print("-h: print this message")
+    print("-t: run in text/batch vs. firefox/x11 mode")
+
+
 if __name__ == '__main__':
     setLogLevel('info')
-    dhcpdemo()
+    if '-h' in argv:
+        usage()
+        exit(1)
+    firefox = '-t' not in argv
+    dhcpdemo(firefox=firefox)
