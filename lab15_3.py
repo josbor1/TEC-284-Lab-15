@@ -248,6 +248,12 @@ def usage():
     print("-h: print this message")
     print("-t: run in text/batch vs. firefox/x11 mode")
 
+def connectToInternet(network, switch):
+    "Connect the network to the internet"
+    switch = network.get(switch)
+    switch.cmd("sysctl -w net.ipv4.ip_forward=1")
+    switch.cmd("iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE")
+    return switch
 
 if __name__ == '__main__':
     setLogLevel('info')
