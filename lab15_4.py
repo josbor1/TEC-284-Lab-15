@@ -72,7 +72,9 @@ def start_dhcp_server( host, gw, dns ):
               '1>/tmp/%s-dhcp.log 2>&1  &' % host )
 
 def stop_dhcp_server( host ):
-     # (unchanged)
+    "Stop DHCP server on host"
+    info( '* Stopping DHCP server on', host, 'at', host.IP(), '\n' )
+    host.cmd( 'kill %udhcpd' )
 
 def hacked_webpage(path):
     """Creates a simple HTML file that displays a "hacked" message"""
