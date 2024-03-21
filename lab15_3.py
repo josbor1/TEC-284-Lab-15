@@ -116,9 +116,7 @@ def waitForIP(host):
         info('.')
         sleep(1)
     info('\n')
-    info('*', host, '
-is now using',
-          host.cmd('grep nameserver /etc/resolv.conf'))
+    info('*', host, 'is now using', host.cmd('grep nameserver /etc/resolv.conf'))
 
 # Fake DNS server
 
