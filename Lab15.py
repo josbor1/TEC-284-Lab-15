@@ -187,6 +187,13 @@ def unmountPrivateResolvconf(host):
     host.cmd('umount', etc)
     host.cmd('rmdir', etc)
 
+def connectToInternet(network, switch):
+    "Connect the network to the internet"
+    switch = network.get(switch)
+    switch.cmd("sysctl -w net.ipv4.ip_forward=1")
+    switch.cmd("iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE")
+    return switch
+
 def dhcpdemo(firefox=True):
     "Rogue DHCP server demonstration"
     checkRequired()
