@@ -28,7 +28,6 @@ from mininet.cli import CLI
 from mininet.util import quietRun
 from mininet.log import setLogLevel, info
 from mininet.term import makeTerms
-from mininet.examples.nat import connectToInternet, stopNAT
 
 from sys import exit, stdin, argv
 from time import sleep
@@ -142,7 +141,7 @@ def startEvilWebServer(host):
     webdir = '/tmp/evilwebserver'
     host.cmd('rm -rf', webdir)
     host.cmd('mkdir -p', webdir)
-    with open(webdir + '/index.html', 'w') as f:
+    with open(webdir + '/index.html', 'w')
         f.write('<html><p>You have been pwned! Please sign in.<p>\n'
                 '<body><form action="">\n'
                 'e-mail: <input type="text" name="firstname"><br>\n'
@@ -245,4 +244,8 @@ def dhcpdemo(firefox=True):
     stopNAT(rootnode)
     unmountPrivateResolvconf(h1)
     net.stop()
-   
+
+# Run the dhcpdemo function when the script is executed
+if __name__ == '__main__':
+    setLogLevel('info')
+    dhcpdemo()
