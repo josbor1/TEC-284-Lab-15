@@ -116,16 +116,15 @@ def startEvilWebServer(host):
     webdir = '/tmp/evilwebserver'
     host.cmd('rm -rf', webdir)
     host.cmd('mkdir -p', webdir)
-    with open(webdir + '/index.html', 'w'):
-        f.write('<html><p>Haha! You have been hacked! Please sign in.<p>\n')
     with open(webdir + '/index.html', 'w') as f:
-        f.write('<html><p>You have been pwned! Please sign in.<p>\n'
+        f.write('<html><p>Haha! You have been Hacked! Please sign in.<p>\n'
                 '<body><form action="">\n'
                 'e-mail: <input type="text" name="firstname"><br>\n'
                 'password: <input type="text" name="firstname"><br>\n'
                 '</form></body></html>')
     host.cmd('cd', webdir)
     host.cmd('python3 -m http.server 80 >& /tmp/http.log &')
+
 
 
 def stopEvilWebServer(host):
