@@ -60,7 +60,7 @@ def make_dhcp_config( filename, intf, gw, dns ):
         'option router %s' % gw,
         'option dns %s' % dns,
         '' )
-    with open( filename, 'w' as f:
+    with open( filename, 'w') as f:
         f.write( '\n'.join( config ) )
 
 def start_dhcp_server( host, gw, dns ):
