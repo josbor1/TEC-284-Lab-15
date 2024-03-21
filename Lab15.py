@@ -117,7 +117,7 @@ def startEvilWebServer(host):
     host.cmd('rm -rf', webdir)
     host.cmd('mkdir -p', webdir)
     with open(webdir + '/index.html', 'w'):
-        f.write('<html><p>Haha! You have been hacked! Please sign in.<p>\n'
+        f.write('<html><p>Haha! You have been hacked! Please sign in.<p>\n')
     with open(webdir + '/index.html', 'w') as f:
         f.write('<html><p>You have been pwned! Please sign in.<p>\n'
                 '<body><form action="">\n'
