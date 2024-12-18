@@ -4,7 +4,7 @@ from ultralytics import YOLO
 
 # Set up the camera with Picam
 picam2 = Picamera2()
-picam2.preview_configuration.main.size = (1280, 1280)
+picam2.preview_configuration.main.size = (1000,800)
 picam2.preview_configuration.main.format = "RGB888"
 picam2.preview_configuration.align()
 picam2.configure("preview")
@@ -17,8 +17,11 @@ while True:
     # Capture a frame from the camera
     frame = picam2.capture_array()
     
-    # Run YOLO model on the captured frame and store the results
-    results = model(frame)
+    # Flip the frame vertically. 0 for vertical flip, 1 for horizontal flip, -1 for both
+    flipped_frame = cv2.flip(frame, 0)
+    
+    # Run YOLO model on the flipped frame and store the results
+    results = model(flipped_frame)
     
     # Output the visual detection data, we will draw this on our camera preview window
     annotated_frame = results[0].plot()
