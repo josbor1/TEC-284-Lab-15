@@ -31,7 +31,8 @@ def run_inference(picam2, model):
         # Capture a frame from the camera
         frame = picam2.capture_array()
 
-        # Flip the frame vertically
+        # Flip the frame vertically. "0" is the angle, so alter
+        # this as needed to get your camera oriented properly
         flipped_frame = cv2.flip(frame, 0)
 
         # Run inference with YOLO
