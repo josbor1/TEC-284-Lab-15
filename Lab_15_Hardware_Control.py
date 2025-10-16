@@ -11,7 +11,7 @@ picam2.preview_configuration.align()
 picam2.configure("preview")
 picam2.start()
 
-# initialise output pin. You will need to change this to whatever number you are using!
+# initialize output pin. You will need to change this to whatever number you are using!
 output = LED(16)
 
 # Load the YOLO model
