@@ -60,7 +60,7 @@ def run_inference(picam2, model, display=True):
 # Main function
 def main():
     picam2 = initialize_camera(resolution=(640, 480))
-    model = load_model("yolov8n-world.pt", classes=["person"])
+    model = load_model("yolov8s-world.pt", classes=["person"])
 
     if model is not None:
         try:
